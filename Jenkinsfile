@@ -37,8 +37,8 @@ pipeline {
         stage('voting build & publish') {
           agent any
           when {
-                branch 'main'
-            }
+            branch 'main'
+          }
           steps {
             script {
               docker.withRegistry('https://index.docker.io/v1/','dockerlogin'){
@@ -50,6 +50,31 @@ pipeline {
             }
 
           }
+        }
+
+      }
+    }
+
+    stage('Frontend') {
+      agent {
+        docker {
+          image 'node:current-alpine3.19'
+        }
+
+      }
+      steps {
+        dir(path: 'frontend') {
+          sh 'npm install'
+        }
+
+      }
+    }
+
+    stage('FrontEnd Test') {
+      agent any
+      steps {
+        dir(path: 'frontend') {
+          sh 'echo "Testing script"'
         }
 
       }
