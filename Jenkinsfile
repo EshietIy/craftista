@@ -71,10 +71,30 @@ pipeline {
     }
 
     stage('FrontEnd Test') {
-      agent any
-      steps {
-        dir(path: 'frontend') {
-          sh 'echo "Testing script"'
+      parallel {
+        stage('FrontEnd Test') {
+          agent any
+          steps {
+            dir(path: 'frontend') {
+              sh 'echo "Testing script"'
+            }
+
+          }
+        }
+
+        stage('Pushing Image') {
+          agent any
+          steps {
+            script {
+              docker.withRegistry('https://index.docker.io/v1/','dockerlogin'){
+                def commitHash = env.GIT_COMMIT.take(7)
+                def dockerImage = docker.build("eshietiy/craftista-frontend:${commitHash}", "./voting")
+                dockerImage.push()
+                dockerImage.push("latest")
+              }
+            }
+
+          }
         }
 
       }
