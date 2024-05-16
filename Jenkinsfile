@@ -1,7 +1,13 @@
 pipeline {
-  agent any
+  agent none
   stages {
     stage('voting Build') {
+      agent {
+        docker {
+          image 'maven:3.9.6-eclipse-temurin-17-alpine'
+        }
+
+      }
       steps {
         echo 'compilation of voting begins....'
         dir(path: 'voting') {
@@ -12,9 +18,38 @@ pipeline {
     }
 
     stage('Voting Test') {
-      steps {
-        dir(path: 'voting') {
-          sh 'echo "Testing"'
+      parallel {
+        stage('Voting Test') {
+          agent {
+            docker {
+              image 'maven:3.9.6-eclipse-temurin-17-alpine'
+            }
+
+          }
+          steps {
+            dir(path: 'voting') {
+              sh 'echo "Testing"'
+            }
+
+          }
+        }
+
+        stage('voting build & publish') {
+          agent any
+          when {
+                branch 'main'
+            }
+          steps {
+            script {
+              docker.withRegistry('https://index.docker.io/v1','dockerlogin'){
+                def commitHash = env.GIT_COMMIT.take(7)
+                def dockerImage = docker.build("eshietiy/craftista-voting:${commitHash}", "./voting")
+                dockerImage.push()
+                dockerImage.push("latest")
+              }
+            }
+
+          }
         }
 
       }
